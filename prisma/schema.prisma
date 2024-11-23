@@ -1,0 +1,27 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Card {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  name       String
+  colors     String[]
+  manaCost   String
+  type       String
+  commander  Boolean
+  createdAt  DateTime @default(now())
+}
+
+model Deck {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  name       String
+  commander  Card     @relation(fields: [commanderId], references: [id])
+  commanderId String
+  cards      Card[]
+  createdAt  DateTime @default(now())
+}
