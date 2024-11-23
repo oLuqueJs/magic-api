@@ -7,21 +7,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Card {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  name       String
-  colors     String[]
-  manaCost   String
-  type       String
-  commander  Boolean
-  createdAt  DateTime @default(now())
+model Deck {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  commanderId String
+  cards       Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
-model Deck {
+model Card {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  scryfallId String   @unique
   name       String
-  commander  Card     @relation(fields: [commanderId], references: [id])
-  commanderId String
-  cards      Card[]
+  colors     Json
   createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
