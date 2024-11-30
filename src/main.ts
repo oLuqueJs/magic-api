@@ -7,8 +7,9 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Magic API')
-    .setDescription('API para gerenciar e criar decks de Magic')
+    .setDescription('API para gerenciar e criar decks de Magic, com autenticação JWT')
     .setVersion('1.0')
+    .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
