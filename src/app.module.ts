@@ -4,8 +4,6 @@ import { CardsModule } from './cards/cards.module';
 import { CommandersModule } from './commanders/commanders.module';
 import { DecksModule } from './decks/decks.module';
 import { RmqModule } from './rmq/rmq.module';
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -14,8 +12,6 @@ import { UsersModule } from './users/users.module';
     CommandersModule,
     DecksModule,
     RmqModule,
-    AuthModule,
-    UsersModule
   ],
 })
 export class AppModule {}
