@@ -1,16 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import axios from 'axios';
+import { Deck } from './interfaces/deck.interface';
+import { CardsService } from '../cards/cards.service';
 import { RmqService } from '../rmq/rmq.service';
-import { Card } from 'src/cards/interface/cards.interface';
 
 @Injectable()
 export class DecksService {
-  private readonly scryfallApiUrl = 'https://api.scryfall.com';
-
   constructor(
-    @InjectModel('Deck') private readonly deckModel: Model<any>,
+    @InjectModel('Deck') private readonly deckModel: Model<Deck>,
+    private readonly cardsService: CardsService,
     private readonly rmqService: RmqService,
   ) {}
 
@@ -26,24 +25,23 @@ export class DecksService {
   }
 
   async createRandomDeck(name: string) {
-    const commanderResponse = await axios.get<Card>(`${this.scryfallApiUrl}/cards/random`, {
-      params: { q: 'is:commander' },
-    });
-    const commander = commanderResponse.data;
-
-    const cardsResponse = await axios.get<{ data: Card[] }>(`${this.scryfallApiUrl}/cards/search`, {
-      params: { q: `color<=${commander.colors.join(',')}` },
-    });
-    const cardIds = cardsResponse.data.data.slice(0, 99).map((card) => card.id);
+    const commander = await this.cardsService.getRandomCommander();
+    const cards = await this.cardsService.searchCardsForCommander(commander.colors);
+    const cardIds = cards.slice(0, 99).map(card => card.id);
 
     return this.createDeck(name, commander.id, cardIds);
   }
 
-  async exportDeck(deckId: string) {
+  async getDeckById(deckId: string) {
     const deck = await this.deckModel.findById(deckId).populate('commander cards').exec();
     if (!deck) {
-      throw new Error('Deck não encontrado');
+      throw new HttpException('Deck not found', HttpStatus.NOT_FOUND);
     }
+    return deck;
+  }
+
+  async exportDeck(deckId: string) {
+    const deck = await this.getDeckById(deckId);
     return {
       id: deck._id,
       name: deck.name,
@@ -55,14 +53,6 @@ export class DecksService {
   async importDeck(data: any) {
     const deck = new this.deckModel(data);
     await deck.save();
-    return deck;
-  }
-
-  async processDeckImport(deckId: string) {
-    const deck = await this.deckModel.findById(deckId).exec();
-    if (!deck) {
-      throw new Error(`Deck ${deckId} não encontrado`);
-    }
     return deck;
   }
 }
