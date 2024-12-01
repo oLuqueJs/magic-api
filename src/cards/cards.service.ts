@@ -1,65 +1,50 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-import axios from 'axios';
-import { Card, SearchResponse } from './interface/cards.interface';
+import { Injectable } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import { Card } from './interface/cards.interface';
 
 @Injectable()
 export class CardsService {
   private readonly scryfallApiUrl = 'https://api.scryfall.com';
 
-  async findCardByName(name: string): Promise<Card> {
+  constructor(private readonly httpService: HttpService) {}
+
+  async getRandomCommander(): Promise<Card> {
     try {
-      const response = await axios.get<Card>(`${this.scryfallApiUrl}/cards/named`, {
-        params: { fuzzy: name },
-      });
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.scryfallApiUrl}/cards/random`, {
+          params: { q: 'is:commander' },
+        }),
+      );
       return response.data;
     } catch (error) {
-      if (error.response?.status === 404) {
-        throw new HttpException('Carta não encontrada', HttpStatus.NOT_FOUND);
-      }
-      throw new HttpException('Erro ao buscar a carta', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new Error('Erro ao buscar comandante aleatório');
     }
   }
 
-  async searchCards(query: string): Promise<SearchResponse> {
+  async searchCardsForCommander(commanderColors: string[]): Promise<Card[]> {
     try {
-      const response = await axios.get<SearchResponse>(`${this.scryfallApiUrl}/cards/search`, {
-        params: { q: query },
-      });
-      return response.data;
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.scryfallApiUrl}/cards/search`, {
+          params: {
+            q: `color<=${commanderColors.join(',')}`,
+          },
+        }),
+      );
+      return response.data.data;
     } catch (error) {
-      throw new HttpException('Erro ao realizar a busca', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new Error('Erro ao buscar cartas para o comandante');
     }
   }
 
-  async findCardsByColor(color: string): Promise<SearchResponse> {
+  async getCardById(cardId: string): Promise<Card> {
     try {
-      const response = await axios.get<SearchResponse>(`${this.scryfallApiUrl}/cards/search`, {
-        params: { q: `color:${color}` },
-      });
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.scryfallApiUrl}/cards/${cardId}`),
+      );
       return response.data;
     } catch (error) {
-      throw new HttpException('Erro ao buscar cartas por cor', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
-
-  async findCardById(id: string): Promise<Card> {
-    try {
-      const response = await axios.get<Card>(`${this.scryfallApiUrl}/cards/${id}`);
-      return response.data;
-    } catch (error) {
-      if (error.response?.status === 404) {
-        throw new HttpException('Carta não encontrada', HttpStatus.NOT_FOUND);
-      }
-      throw new HttpException('Erro ao buscar a carta', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
-
-  async findRandomCard(): Promise<Card> {
-    try {
-      const response = await axios.get<Card>(`${this.scryfallApiUrl}/cards/random`);
-      return response.data;
-    } catch (error) {
-      throw new HttpException('Erro ao buscar uma carta aleatória', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new Error(`Erro ao buscar card com ID: ${cardId}`);
     }
   }
 }
