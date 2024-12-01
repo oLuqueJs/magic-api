@@ -8,13 +8,13 @@ export const DeckSchema = new Schema({
   },
   commander: {
     type: Types.ObjectId,
-    ref: 'Card',
+    ref: 'Card', 
     required: true,
   },
   cards: [
     {
       type: Types.ObjectId,
-      ref: 'Card',
+      ref: 'Card', 
     },
   ],
   createdAt: {
