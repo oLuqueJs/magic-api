@@ -1,26 +1,58 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UserService } from '../users/users.service'; // Certifique-se de que o caminho está correto
+import { UserService } from '../users/users.service'; 
+import { User } from '../users/user.entity'; 
 
 @Injectable()
 export class AuthService {
   constructor(
+    private readonly userService: UserService,
     private readonly jwtService: JwtService,
-    private readonly userService: UserService, 
   ) {}
 
-  async validateUser(username: string, password: string): Promise<any> {
-    const user = await this.userService.findByUsername(username); 
-    if (user && bcrypt.compareSync(password, user.password)) { 
-      return { userId: user.id, username: user.username };
+  
+    Valida 
+    @param username 
+    @param password 
+    @returns 
+   
+  async validateUser(username: string, password: string): Promise<Omit<User, 'password'> | null> {
+    const user = await this.userService.findOne(username);
+    if (!user) {
+      return null;
     }
-    return null; 
+
+    const bcrypt = await import('bcrypt');
+    const isPasswordValid = bcrypt.compareSync(password, user.password);
+
+    if (isPasswordValid) {
+      const { password, ...result } = user; 
+      return result;
+    }
+
+    return null;
   }
 
-  async login(user: any) {
-    const payload = { username: user.username, sub: user.userId };
+    @param user 
+    @returns 
+  
+  async login(user: Omit<User, 'password'>) {
+    const payload = { username: user.username, sub: user.id };
     return {
-      access_token: this.jwtService.sign(payload), // Gera o token
+      access_token: this.jwtService.sign(payload),
     };
-  }  
+  }
+
+  async register(username: string, password: string): Promise<Omit<User, 'password'>> {
+    const bcrypt = await import('bcrypt');
+    const hashedPassword = bcrypt.hashSync(password, 10); 
+
+    const newUser = await this.userService.create({
+      username,
+      password: hashedPassword,
+    });
+
+    const { password: _, ...result } = newUser; 
+    return result;
+  }
 }

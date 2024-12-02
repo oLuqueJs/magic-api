@@ -1,9 +1,9 @@
-import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './auth.guard';
 
-@ApiTags('Auth') 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -22,9 +22,25 @@ export class AuthController {
   async login(@Body() body: { username: string; password: string }) {
     const user = await this.authService.validateUser(body.username, body.password);
     if (!user) {
-      throw new Error('Credenciais invalidas');
+      throw new UnauthorizedException('Credenciais inválidas');
     }
     return this.authService.login(user);
+  }
+
+  @Post('register')
+  @ApiOperation({ summary: 'Registrar um novo usuário' })
+  @ApiBody({
+    description: 'Dados para registro',
+    schema: {
+      example: {
+        username: 'newuser',
+        password: 'newpassword',
+      },
+    },
+  })
+  async register(@Body() body: { username: string; password: string }) {
+    const newUser = await this.authService.register(body.username, body.password);
+    return { message: 'Usuário registrado com sucesso', user: newUser };
   }
 
   @Post('protected')
@@ -32,6 +48,6 @@ export class AuthController {
   @ApiBearerAuth() 
   @UseGuards(JwtAuthGuard)
   getProtected(@Request() req) {
-    return { message: 'Voce esta conectado', user: req.user };
+    return { message: 'Você está conectado', user: req.user };
   }
 }
